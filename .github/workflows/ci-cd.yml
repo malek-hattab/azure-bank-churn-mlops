@@ -14,6 +14,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,7 +31,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v || true
+          pytest tests/ -v
 
   build-and-deploy:
     needs: test
