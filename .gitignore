@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environnements
+venv/
+.env
+
+# MLflow
+mlruns/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs & images générées
+*.log
+confusion_matrix.png
+feature_importance.png
+
+# IDE
+.vscode/
+
+# Secrets
+*.key
+*.pem
+azure-credentials.json
