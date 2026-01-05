@@ -1,27 +1,31 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Environnements
 venv/
 .env
+.pytest_cache/
+.coverage
 
-# MLflow
+# ML / MLOps
 mlruns/
+*.log
+confusion_matrix.png
+feature_importance.png
 
 # Notebooks
 .ipynb_checkpoints/
 *.ipynb
 
-# Logs & images générées
-*.log
-confusion_matrix.png
-feature_importance.png
-
-# IDE
+# IDE / OS
 .vscode/
+.DS_Store
 
 # Secrets
+azure-credentials.json
+*.secret
 *.key
 *.pem
-azure-credentials.json
