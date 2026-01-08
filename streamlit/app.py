@@ -1,55 +1,73 @@
 import streamlit as st
 import requests
 
-#  PAGE CONFIG 
+# ================= CONFIG =================
 st.set_page_config(
-    page_title="Bank Churn – Azure MLOps Demo",
+    page_title="Bank Churn – MLOps Demo",
     page_icon="🏦",
     layout="centered"
 )
 
-#  HEADER 
+API_BASE_URL = "https://app-churn-api.whiteflower-49131d93.francecentral.azurecontainerapps.io"
+
+# ================= SIDEBAR =================
+with st.sidebar:
+    st.markdown("## 🏦 Bank Churn MLOps")
+    st.markdown("""
+    **Architecture**
+    - Streamlit (UI)
+    - Azure Container Apps
+    - FastAPI
+    - ML model (Scikit-learn)
+    
+    **Fonctionnalités**
+    - Health check API
+    - Prédiction churn
+    - Déploiement CI/CD
+    - Data Drift (bonus)
+    """)
+    st.markdown("---")
+    st.caption("Projet MLOps – Azure")
+
+# ================= HEADER =================
 st.markdown(
-    "<h1 style='text-align:center;'>🏦 Bank Churn Prediction</h1>",
+    """
+    <h1 style="text-align:center;">🏦 Bank Churn Prediction</h1>
+    <p style="text-align:center; color:gray;">
+    Streamlit ➜ Azure Container Apps ➜ FastAPI
+    </p>
+    """,
     unsafe_allow_html=True
 )
 
-#  API CONFIG
-BASE_URL = "https://app-churn-api.whiteflower-49131d93.francecentral.azurecontainerapps.io"
-HEALTH_URL = f"{BASE_URL}/health"
-PREDICT_URL = f"{BASE_URL}/predict"
-
 st.divider()
 
-#  HEALTH CHECK 
+# ================= HEALTH CHECK =================
 st.subheader("🩺 API Health Check")
 
-if st.button("Tester /health"):
+if st.button("Tester l’API"):
     try:
-        with st.spinner("Vérification de l'API..."):
-            r = requests.get(HEALTH_URL, timeout=5)
-
-        if r.status_code == 200:
-            st.success("API en ligne – Modèle chargé")
-            st.json(r.json())
+        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+        if response.status_code == 200:
+            st.success("API opérationnelle – Modèle chargé")
+            st.json(response.json())
         else:
             st.error("API indisponible")
-
-    except requests.exceptions.RequestException:
-        st.error("Impossible de joindre l'API")
+    except Exception as e:
+        st.error(f"Erreur : {e}")
 
 st.divider()
 
-#  FORM 
+# ================= FORM =================
 st.subheader("📊 Données client")
 
-with st.form("churn_form"):
+with st.form("prediction_form"):
     col1, col2 = st.columns(2)
 
     with col1:
         credit_score = st.slider("Credit Score", 300, 850, 650)
         age = st.slider("Age", 18, 90, 35)
-        tenure = st.slider("Tenure", 0, 10, 5)
+        tenure = st.slider("Tenure (années)", 0, 10, 5)
         geography = st.selectbox("Geography", ["France", "Germany", "Spain"])
 
     with col2:
@@ -59,9 +77,9 @@ with st.form("churn_form"):
         active = st.selectbox("Active Member", [0, 1])
         salary = st.number_input("Estimated Salary", value=75000.0)
 
-    submit = st.form_submit_button("🚀 Prédire le churn")
+    submitted = st.form_submit_button("🚀 Prédire le churn")
 
-#  ONE-HOT ENCODING 
+# ================= PAYLOAD =================
 geo_germany = 1 if geography == "Germany" else 0
 geo_spain = 1 if geography == "Spain" else 0
 
@@ -78,43 +96,41 @@ payload = {
     "Geography_Spain": geo_spain
 }
 
-# PREDICTION 
-if submit:
+# ================= RESULT =================
+if submitted:
     try:
-        with st.spinner("⏳ Calcul de la prédiction..."):
-            response = requests.post(
-                PREDICT_URL,
-                json=payload,
-                timeout=10
-            )
+        response = requests.post(
+            f"{API_BASE_URL}/predict",
+            json=payload,
+            timeout=10
+        )
 
         if response.status_code == 200:
             result = response.json()
-            churn = result.get("prediction", 0)
-            prob = result.get("probability", 0)
+            proba = result["churn_probability"]
+            prediction = result["prediction"]
+            risk = result["risk_level"]
 
             st.divider()
-            st.subheader("📈 Résultat de la prédiction")
+            st.subheader("📈 Résultat")
 
-            if churn == 1:
-                st.error(f" Client à risque de churn ({prob:.2%})")
-                st.metric("Risque", "ÉLEVÉ", f"{prob:.2%}")
+            if prediction == 1:
+                st.error(f"⚠️ Client à risque de churn ({proba:.2%})")
             else:
-                st.success(f"Client fidèle ({1 - prob:.2%})")
-                st.metric("Risque", "FAIBLE", f"{1 - prob:.2%}")
+                st.success(f"✅ Client fidèle ({1 - proba:.2%})")
 
-            st.progress(min(int(prob * 100), 100))
+            st.progress(int(proba * 100))
+            st.info(f"🔎 Niveau de risque : **{risk}**")
 
-            with st.expander("🔍 Voir la réponse brute de l’API"):
+            with st.expander("🔍 Détails techniques"):
                 st.json(result)
 
         else:
-            st.error("Erreur lors de l'appel API")
-            st.write(response.text)
+            st.error("Erreur API")
+            st.text(response.text)
 
-    except requests.exceptions.RequestException:
-        st.error("Erreur réseau lors de l'appel API")
+    except Exception as e:
+        st.error(f"Erreur : {e}")
 
-#  FOOTER 
 st.divider()
-st.caption("Projet MLOps – Déploiement Azure – CI/CD GitHub Actions")
+st.caption("© Projet MLOps – Azure – CI/CD GitHub Actions")
