@@ -8,16 +8,15 @@ import os
 
 from app.models import CustomerFeatures, PredictionResponse, HealthResponse
 
-# ============================================================
-# LOGGING
-# ============================================================
+# AJOUT DRIFT 
+from app.drift_detect import detect_drift
 
+# LOGGING
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ============================================================
+
 # FASTAPI INIT
-# ============================================================
 
 app = FastAPI(
     title="Bank Churn Prediction API",
@@ -35,9 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ============================================================
 # MODEL LOADING
-# ============================================================
 
 MODEL_PATH = os.getenv("MODEL_PATH", "model/churn_model.pkl")
 model = None
@@ -52,9 +49,8 @@ async def load_model():
         logger.error(f"Erreur lors du chargement du modele : {e}")
         model = None
 
-# ============================================================
+
 # GENERAL ENDPOINTS
-# ============================================================
 
 @app.get("/", tags=["General"])
 def root():
@@ -74,9 +70,18 @@ def health_check():
         "model_loaded": True
     }
 
-# ============================================================
+# AJOUT DRIFT ENDPOINT 
+
+@app.get("/drift/check", tags=["Monitoring"])
+def check_drift():
+    """
+    Vérifie le data drift entre les données de référence
+    et les données simulées en production
+    """
+    return detect_drift()
+
+
 # PREDICTION ENDPOINTS
-# ============================================================
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Prediction"])
 def predict(features: CustomerFeatures):
@@ -98,7 +103,6 @@ def predict(features: CustomerFeatures):
             features.Geography_Spain
         ]])
 
-        
         proba = float(model.predict_proba(input_data)[0][1])
         prediction = int(proba > 0.5)
 
@@ -124,7 +128,6 @@ def predict(features: CustomerFeatures):
         logger.error(f"Erreur lors de la prediction : {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @app.post("/predict/batch", tags=["Prediction"])
 def predict_batch(features_list: List[CustomerFeatures]):
 
@@ -148,7 +151,6 @@ def predict_batch(features_list: List[CustomerFeatures]):
                 features.Geography_Spain
             ]])
 
-            #  CORRECTION ICI AUSSI
             proba = float(model.predict_proba(input_data)[0][1])
             prediction = int(proba > 0.5)
 
@@ -167,7 +169,6 @@ def predict_batch(features_list: List[CustomerFeatures]):
     except Exception as e:
         logger.error(f"Erreur batch prediction : {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 if __name__ == "__main__":
     import uvicorn
